@@ -3,6 +3,8 @@ import json
 import time
 import base64
 import base58
+import os
+import psycopg2
 from flask import Flask, request, jsonify, send_file
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 
