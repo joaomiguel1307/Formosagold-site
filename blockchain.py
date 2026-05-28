@@ -228,5 +228,5 @@ def new_wallet():
     })
 @app.route('/')
 def index():
-	return send_file('formosagold.html')
+	return send_file('Formosagold.html')
 app.run(host="0.0.0.0", port=5000)
