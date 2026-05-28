@@ -218,5 +218,12 @@ def mine():
 # =========================================
 # START
 # =========================================
-
+@app.route("/wallet/new")
+def new_wallet():
+    w = Wallet()
+    return jsonify({
+        "address": w.address,
+        "public_key": w.export_public(),
+        "private_key": w.private_key.to_string().hex()
+    })
 app.run(host="0.0.0.0", port=5000)
