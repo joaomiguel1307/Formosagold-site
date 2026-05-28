@@ -1,4 +1,5 @@
 flask
 gunicorn
 base58
+ecdsa
 
