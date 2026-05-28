@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FormosaGold — Blockchain Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFB800;
+    --gold-dim: #7a5800;
+    --bg: #0a0800;
+    --bg2: #110f00;
+    --bg3: #1a1600;
+    --text: #f0e6c0;
+    --text-dim: #7a7060;
+    --green: #00ff88;
+    --red: #ff4444;
+    --border: rgba(255,184,0,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,184,0,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 80% 80%, rgba(255,184,0,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,184,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,184,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 40px 0 30px;
+    text-align: center;
+    position: relative;
+  }
+
+  .logo-mark {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    background: var(--gold);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    margin-bottom: 16px;
+    animation: pulse 3s ease-in-out infinite;
+    position: relative;
+  }
+
+  .logo-mark::after {
+    content: '◆';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg);
+    font-size: 20px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,184,0,0.4); }
+    50% { box-shadow: 0 0 40px rgba(255,184,0,0.8), 0 0 80px rgba(255,184,0,0.2); }
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--gold), #fff5cc, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tagline {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 30px;
+  }
+
+  .stat {
+    background: var(--bg2);
+    padding: 20px;
+    text-align: center;
+    transition: background 0.2s;
+  }
+
+  .stat:hover { background: var(--bg3); }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 6px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: rgba(255,184,0,0.3); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* INPUTS */
+  .input-group { margin-bottom: 16px; }
+  
+  label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  input:focus { border-color: rgba(255,184,0,0.5); }
+  input::placeholder { color: var(--text-dim); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-gold {
+    background: var(--gold);
+    color: var(--bg);
+  }
+  .btn-gold:hover { background: #ffc933; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,184,0,0.3); }
+  .btn-gold:active { transform: translateY(0); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--gold); background: rgba(255,184,0,0.05); }
+
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  /* RESULT BOX */
+  .result {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 11px;
+    line-height: 1.8;
+    word-break: break-all;
+    display: none;
+  }
+
+  .result.show { display: block; }
+  .result.success { border-color: rgba(0,255,136,0.3); }
+  .result.error { border-color: rgba(255,68,68,0.3); color: var(--red); }
+
+  .result-key {
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .result-val {
+    color: var(--gold);
+    font-size: 13px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+  }
+
+  .result-val.address {
+    color: var(--green);
+    font-size: 14px;
+  }
+
+  /* BLOCKCHAIN BLOCKS */
+  .block-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 16px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .block-item:hover { border-left-color: var(--green); background: var(--bg3); }
+
+  .block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .block-index {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  .block-txcount {
+    background: rgba(255,184,0,0.1);
+    color: var(--gold);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .block-hash {
+    color: var(--text-dim);
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* SPINNER */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,184,0,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  /* TX LIST */
+  .tx-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .tx-item:last-child { border-bottom: none; }
+
+  .tx-from { color: var(--text-dim); }
+  .tx-amount { color: var(--gold); font-weight: 700; font-family: 'Syne', sans-serif; }
+
+  /* COPY BTN */
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* WARNING */
+  .warning {
+    background: rgba(255,184,0,0.05);
+    border: 1px solid rgba(255,184,0,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 11px;
+    color: var(--gold);
+    margin-top: 12px;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 40px 0 30px;
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ANIMATIONS */
+  .fade-in {
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .stat-value { font-size: 20px; }
+    .tabs { overflow-x: auto; }
+    .tab { white-space: nowrap; padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-mark"></div>
+    <h1>FormosaGold</h1>
+    <p class="tagline"><span class="status-dot"></span>Blockchain Explorer • Live</p>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat">
+      <div class="stat-value" id="statBlocks">—</div>
+      <div class="stat-label">Blocos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statTx">—</div>
+      <div class="stat-label">Transações</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statDiff">3</div>
+      <div class="stat-label">Dificuldade</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('explorer')">⛓ Explorer</button>
+    <button class="tab" onclick="switchTab('wallet')">🔑 Carteira</button>
+    <button class="tab" onclick="switchTab('mine')">⛏ Minerar</button>
+    <button class="tab" onclick="switchTab('balance')">💰 Saldo</button>
+  </div>
+
+  <!-- EXPLORER PANEL -->
+  <div id="panel-explorer" class="panel active">
+    <div class="card">
+      <div class="card-title">⛓ Blockchain</div>
+      <div id="chainList"><div class="loading"><div class="spinner"></div><br><br>A carregar blocos...</div></div>
+    </div>
+  </div>
+
+  <!-- WALLET PANEL -->
+  <div id="panel-wallet" class="panel">
+    <div class="card">
+      <div class="card-title">🔑 Nova Carteira</div>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:20px; line-height:1.7;">
+        Gera um par de chaves único. O endereço é público — podes partilhá-lo para receber FMG. A chave privada é secreta — nunca a partilhes.
+      </p>
+      <button class="btn btn-gold" onclick="createWallet()" id="btnWallet">
+        ✦ Criar Nova Carteira
+      </button>
+
+      <div class="result" id="walletResult">
+        <div style="margin-bottom:12px;">
+          <div class="result-key">Endereço</div>
+          <div class="result-val address" id="wAddress"></div>
+          <button class="copy-btn" onclick="copy('wAddress')">copiar</button>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div class="result-key">Chave Pública</div>
+          <div class="result-val" id="wPubKey" style="font-size:10px; color:var(--text-dim)"></div>
+          <button class="copy-btn" onclick="copy('wPubKey')">copiar</button>
+        </div>
+        <div>
+          <div class="result-key">Chave Privada ⚠️</div>
+          <div class="result-val" id="wPrivKey" style="font-size:10px; color:var(--red)"></div>
+          <button class="copy-btn" onclick="copy('wPrivKey')">copiar</button>
+        </div>
+        <div class="warning">
+          ⚠️ Guarda a chave privada em lugar seguro. Quem a tiver controla os teus FMG.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MINE PANEL -->
+  <div id="panel-mine" class="panel">
+    <div class="card">
+      <div class="card-title">⛏ Minerar Bloco</div>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:20px; line-height:1.7;">
+        Minera um novo bloco e recebe 50 FMG de recompensa. Introduz o teu endereço para receber a recompensa.
+      </p>
+      <div class="input-group">
+        <label>Endereço do Minerador</label>
+        <input type="text" id="minerAddr" placeholder="ex: 3PS1ErKoYzMGV9NGkgsVJ3TtxLCM" />
+      </div>
+      <button class="btn btn-gold" onclick="mineBlock()" id="btnMine">
+        ⛏ Minerar Agora
+      </button>
+
+      <div class="result" id="mineResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--text-dim); font-size:11px;">ℹ Recompensa por Bloco</div>
+      <div style="font-family:'Syne',sans-serif; font-size:36px; font-weight:800; color:var(--gold);">50 <span style="font-size:16px; color:var(--text-dim)">FMG</span></div>
+      <div style="font-size:11px; color:var(--text-dim); margin-top:6px;">Por cada bloco minerado</div>
+    </div>
+  </div>
+
+  <!-- BALANCE PANEL -->
+  <div id="panel-balance" class="panel">
+    <div class="card">
+      <div class="card-title">💰 Consultar Saldo</div>
+      <div class="input-group">
+        <label>Endereço da Carteira</label>
+        <input type="text" id="balanceAddr" placeholder="ex: 3PS1ErKoYzMGV9NGkgsVJ3TtxLCM" />
+      </div>
+      <button class="btn btn-gold" onclick="checkBalance()" id="btnBalance">
+        🔍 Ver Saldo
+      </button>
+
+      <div class="result" id="balanceResult"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  FormosaGold © 2026 — Blockchain construída do zero
+</footer>
+
+<script>
+const API = 'https://formosagold-site.onrender.com';
+
+// TABS
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'explorer') loadChain();
+}
+
+// LOAD CHAIN
+async function loadChain() {
+  const el = document.getElementById('chainList');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><br><br>A carregar...</div>';
+  try {
+    const res = await fetch(API + '/chain');
+    const blocks = await res.json();
+
+    // Stats
+    let totalTx = 0;
+    blocks.forEach(b => totalTx += b.transactions.length);
+    document.getElementById('statBlocks').textContent = blocks.length;
+    document.getElementById('statTx').textContent = totalTx;
+
+    // Render blocks (newest first)
+    el.innerHTML = '';
+    [...blocks].reverse().forEach(b => {
+      const div = document.createElement('div');
+      div.className = 'block-item fade-in';
+      div.innerHTML = `
+        <div class="block-header">
+          <div class="block-index">#${b.index}</div>
+          <div class="block-txcount">${b.transactions.length} tx</div>
+        </div>
+        <div class="block-hash">Hash: ${b.hash}</div>
+        <div style="font-size:10px; color:var(--text-dim); margin-top:4px;">
+          Nonce: ${b.nonce} &nbsp;|&nbsp; ${new Date(b.timestamp * 1000).toLocaleString('pt')}
+        </div>
+        ${b.transactions.length > 0 ? `
+        <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+          ${b.transactions.map(tx => `
+            <div class="tx-item">
+              <div class="tx-from">${tx.from === 'SYSTEM' ? '⛏ Recompensa' : tx.from.substring(0,12)+'...'} → ${tx.to ? tx.to.substring(0,12)+'...' : 'null'}</div>
+              <div class="tx-amount">${tx.amount} FMG</div>
+            </div>
+          `).join('')}
+        </div>` : ''}
+      `;
+      el.appendChild(div);
+    });
+  } catch(e) {
+    el.innerHTML = '<div class="loading" style="color:var(--red)">Erro ao carregar. O servidor pode estar a acordar (aguarda 30s e tenta de novo).</div>';
+  }
+}
+
+// CREATE WALLET
+async function createWallet() {
+  const btn = document.getElementById('btnWallet');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> A criar...';
+  const result = document.getElementById('walletResult');
+  result.classList.remove('show', 'success', 'error');
+
+  try {
+    const res = await fetch(API + '/wallet/new');
+    const data = await res.json();
+    document.getElementById('wAddress').textContent = data.endereço || data.address;
+    document.getElementById('wPubKey').textContent = data.public_key || data.chave_publica;
+    document.getElementById('wPrivKey').textContent = data.chave_privada || data.private_key;
+    result.classList.add('show', 'success');
+  } catch(e) {
+    result.innerHTML = 'Erro ao criar carteira. Tenta de novo.';
+    result.classList.add('show', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Criar Nova Carteira';
+  }
+}
+
+// MINE
+async function mineBlock() {
+  const addr = document.getElementById('minerAddr').value.trim();
+  const btn = document.getElementById('btnMine');
+  const result = document.getElementById('mineResult');
+  result.classList.remove('show', 'success', 'error');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> A minerar...';
+
+  try {
+    const url = addr ? `${API}/mine?miner=${encodeURIComponent(addr)}` : `${API}/mine`;
+    const res = await fetch(url);
+    const data = await res.json();
+    result.innerHTML = `
+      <div class="result-key">Status</div>
+      <div class="result-val" style="color:var(--green)">✓ ${data.status}</div>
+      ${data.miner ? `
+        <div style="margin-top:12px">
+          <div class="result-key">Recompensa enviada para</div>
+          <div class="result-val address">${data.miner}</div>
+        </div>
+        <div style="margin-top:8px; font-size:20px; font-family:'Syne',sans-serif; font-weight:800; color:var(--gold)">+50 FMG ✦</div>
+      ` : ''}
+    `;
+    result.classList.add('show', 'success');
+    // Refresh stats
+    loadChain();
+  } catch(e) {
+    result.innerHTML = 'Erro ao minerar. Tenta de novo.';
+    result.classList.add('show', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⛏ Minerar Agora';
+  }
+}
+
+// BALANCE
+async function checkBalance() {
+  const addr = document.getElementById('balanceAddr').value.trim();
+  const result = document.getElementById('balanceResult');
+  result.classList.remove('show', 'success', 'error');
+
+  if (!addr) {
+    result.innerHTML = 'Introduz um endereço.';
+    result.classList.add('show', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnBalance');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> A consultar...';
+
+  try {
+    const res = await fetch(`${API}/balance/${encodeURIComponent(addr)}`);
+    const data = await res.json();
+    const bal = data.saldo !== undefined ? data.saldo : data.balance;
+    result.innerHTML = `
+      <div class="result-key">Endereço</div>
+      <div style="font-size:11px; color:var(--text-dim); word-break:break-all; margin-bottom:16px;">${addr}</div>
+      <div class="result-key">Saldo</div>
+      <div style="font-family:'Syne',sans-serif; font-size:42px; font-weight:800; color:var(--gold);">${bal} <span style="font-size:18px; color:var(--text-dim)">FMG</span></div>
+    `;
+    result.classList.add('show', 'success');
+  } catch(e) {
+    result.innerHTML = 'Erro ao consultar saldo.';
+    result.classList.add('show', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Ver Saldo';
+  }
+}
+
+// COPY
+function copy(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('.copy-btn');
+    btns.forEach(b => { if(b.onclick?.toString().includes(id)) { b.textContent = '✓ copiado'; setTimeout(() => b.textContent = 'copiar', 2000); } });
+  });
+}
+
+// Init
+loadChain();
+</script>
+</body>
+</html>
