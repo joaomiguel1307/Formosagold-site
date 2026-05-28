@@ -3,7 +3,7 @@ import json
 import time
 import base64
 import base58
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 
 
@@ -226,4 +226,7 @@ def new_wallet():
         "public_key": w.export_public(),
         "private_key": w.private_key.to_string().hex()
     })
+@app.route('/')
+def index():
+	return send_file('formosagold.html')
 app.run(host="0.0.0.0", port=5000)
