@@ -747,3 +747,22 @@ loadChain();
 </script>
 </body>
 </html>
+<script>
+async function sendTransfer() {
+  const privKey = document.getElementById('txPrivKey').value.trim();
+  const to = document.getElementById('txTo').value.trim();
+  const amount = parseInt(document.getElementById('txAmount').value);
+  const result = document.getElementById('transferResult');
+  result.classList.remove('show','success','error');
+  if(!privKey||!to||!amount){result.innerHTML='Preenche todos os campos.';result.classList.add('show','error');return;}
+  const btn = document.getElementById('btnTransfer');
+  btn.disabled=true;btn.innerHTML='A enviar...';
+  try {
+    const res = await fetch('https://formosagold-site.onrender.com/transfer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({private_key:privKey,to:to,amount:amount})});
+    const data = await res.json();
+    if(data.result==='ok'){result.innerHTML='? Enviado! Minera para confirmar. '+amount+' FMG enviados.';result.classList.add('show','success');document.getElementById('txPrivKey').value='';}
+    else{result.innerHTML='Erro: '+data.result;result.classList.add('show','error');}
+  }catch(e){result.innerHTML='Erro de liga??o.';result.classList.add('show','error');}
+  finally{btn.disabled=false;btn.innerHTML='? Enviar FMG';}
+}
+</script>
