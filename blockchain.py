@@ -208,4 +208,26 @@ def new_wallet():
     })
 
 # START
+@app.route("/transfer", methods=["POST"])
+def transfer():
+    data = request.json
+    try:
+        sk = SigningKey.from_string(
+            bytes.fromhex(data["private_key"]),
+            curve=SECP256k1
+        )
+        w = Wallet.__new__(Wallet)
+        w.private_key = sk
+        w.public_key = sk.get_verifying_key()
+        w.address = w.generate_address()
+        msg = f"{w.address}{data['to']}{data['amount']}"
+        signature = w.sign(msg)
+        result = fmg.add_transaction(
+            w.address, data["to"],
+            data["amount"], signature,
+            w.export_public()
+        )
+        return jsonify({"result": result, "from": w.address})
+    except Exception as e:
+        return jsonify({"result": f"erro: {str(e)}"})
 app.run(host="0.0.0.0", port=5000)
