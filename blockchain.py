@@ -44,7 +44,6 @@ def load_chain():
     conn.close()
     return [r[0] for r in rows]
 
-# CARTEIRA
 class Wallet:
     def __init__(self):
         self.private_key = SigningKey.generate(curve=SECP256k1)
@@ -72,7 +71,6 @@ def verify_signature(message, signature, public_key):
     except:
         return False
 
-# BLOCK
 class Block:
     def __init__(self, index, transactions, previous_hash, nonce=0, timestamp=None, hash=None):
         self.index = index
@@ -108,7 +106,6 @@ class Block:
             "hash": self.hash
         }
 
-# BLOCKCHAIN
 class Blockchain:
     def __init__(self):
         self.difficulty = 3
@@ -159,8 +156,8 @@ class Blockchain:
         return "ok"
 
     def mine_pending(self, miner):
-	halving = len(self.chain) // 300
-	self.reward = max(5, int(50 / (2 ** halving)))
+        halving = len(self.chain) // 300
+        self.reward = max(5, int(50 / (2 ** halving)))
         self.pending.append({
             "from": "SYSTEM",
             "to": miner,
@@ -172,7 +169,6 @@ class Blockchain:
         save_block(block.to_dict())
         self.pending = []
 
-# API
 app = Flask(__name__)
 fmg = Blockchain()
 
@@ -206,30 +202,23 @@ def new_wallet():
     return jsonify({
         "address": w.address,
         "public_key": w.export_public(),
-        "chave_privada": w.private_key.to_string().hex()
+        "private_key": w.private_key.to_string().hex()
     })
 
-# START
 @app.route("/transfer", methods=["POST"])
 def transfer():
     data = request.json
     try:
-        sk = SigningKey.from_string(
-            bytes.fromhex(data["private_key"]),
-            curve=SECP256k1
-        )
+        sk = SigningKey.from_string(bytes.fromhex(data["private_key"]), curve=SECP256k1)
         w = Wallet.__new__(Wallet)
         w.private_key = sk
         w.public_key = sk.get_verifying_key()
         w.address = w.generate_address()
         msg = f"{w.address}{data['to']}{data['amount']}"
         signature = w.sign(msg)
-        result = fmg.add_transaction(
-            w.address, data["to"],
-            data["amount"], signature,
-            w.export_public()
-        )
+        result = fmg.add_transaction(w.address, data["to"], data["amount"], signature, w.export_public())
         return jsonify({"result": result, "from": w.address})
     except Exception as e:
         return jsonify({"result": f"erro: {str(e)}"})
+
 app.run(host="0.0.0.0", port=5000)
