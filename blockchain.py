@@ -202,7 +202,7 @@ def mine():
 def new_wallet():
     w = Wallet()
     return jsonify({
-        "endere?o": w.address,
+        "address": w.address,
         "public_key": w.export_public(),
         "chave_privada": w.private_key.to_string().hex()
     })
