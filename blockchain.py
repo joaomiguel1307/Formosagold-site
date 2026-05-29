@@ -159,8 +159,8 @@ class Blockchain:
         return "ok"
 
     def mine_pending(self, miner):
-halving = len(self.chain) // 300
-self.reward = max(5, int(50 / (2 ** halving)))
+	halving = len(self.chain) // 300
+	self.reward = max(5, int(50 / (2 ** halving)))
         self.pending.append({
             "from": "SYSTEM",
             "to": miner,
