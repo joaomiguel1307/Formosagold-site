@@ -224,5 +224,12 @@ def transfer():
         return jsonify({"result": result, "from": w.address})
     except Exception as e:
         return jsonify({"result": f"erro: {str(e)}"})
+@app.route("/manifest.json")
+def manifest():
+    return send_file("manifest.json")
+
+@app.route("/sw.js")
+def sw():
+    return send_file("sw.js")
 
 app.run(host="0.0.0.0", port=5000)
