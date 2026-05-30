@@ -232,4 +232,8 @@ def manifest():
 def sw():
     return send_file("sw.js")
 
+@app.route("/logo.svg")
+def logo():
+    return send_file("logo.svg")
+
 app.run(host="0.0.0.0", port=5000)
