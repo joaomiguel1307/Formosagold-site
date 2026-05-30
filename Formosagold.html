@@ -75,26 +75,9 @@ if('serviceWorker' in navigator){
     position: relative;
   }
 
-  .logo-mark {
-    display: inline-block;
-    width: 60px;
-    height: 60px;
-    background: var(--gold);
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    margin-bottom: 16px;
-    animation: pulse 3s ease-in-out infinite;
-    position: relative;
-  }
+  
 
-  .logo-mark::after {
-    content: '◆';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--bg);
-    font-size: 20px;
-  }
+  
 
   @keyframes pulse {
     0%, 100% { box-shadow: 0 0 20px rgba(255,184,0,0.4); }
