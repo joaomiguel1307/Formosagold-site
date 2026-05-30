@@ -124,7 +124,11 @@ class Blockchain:
         return Block(d["index"], d["transactions"], d["previous_hash"], d["nonce"], d["timestamp"], d["hash"])
 
     def create_genesis(self):
-        return Block(0, [], "0")
+        return Block(0, [{
+            "from": "SYSTEM",
+            "to": "45CLDmXsot469iov2X8TH6Ej5b7q",
+            "amount": 10000000
+        }], "0")
 
     def get_last(self):
         return self.chain[-1]
