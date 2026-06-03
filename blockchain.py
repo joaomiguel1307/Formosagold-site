@@ -176,6 +176,10 @@ class Blockchain:
 app = Flask(__name__)
 fmg = Blockchain()
 
+# ---------------------------------------------
+# ROTAS ORIGINAIS
+# ---------------------------------------------
+
 @app.route("/")
 def index():
     return send_file("Formosagold.html")
@@ -224,6 +228,7 @@ def transfer():
         return jsonify({"result": result, "from": w.address})
     except Exception as e:
         return jsonify({"result": f"erro: {str(e)}"})
+
 @app.route("/manifest.json")
 def manifest():
     return send_file("manifest.json")
@@ -236,4 +241,149 @@ def sw():
 def logo():
     return send_file("logo.svg")
 
+# ---------------------------------------------
+# NOVOS ENDPOINTS -- COMPATIBILIDADE WEB3/METAMASK
+# ---------------------------------------------
+
+# ID da sua rede -- n?mero ?nico para identificar sua blockchain
+CHAIN_ID = 19307  # FMG Chain ID (pode mudar para qualquer n?mero acima de 1000)
+CHAIN_ID_HEX = hex(CHAIN_ID)
+
+@app.route("/rpc", methods=["POST", "OPTIONS"])
+def rpc():
+    """
+    Endpoint JSON-RPC compat?vel com MetaMask e Web3.
+    A MetaMask usa este endpoint para se comunicar com sua blockchain.
+    """
+    # Permite requisi??es do navegador (CORS)
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
+    data = request.json
+    method = data.get("method")
+    params = data.get("params", [])
+    req_id = data.get("id", 1)
+
+    result = None
+    error = None
+
+    # Retorna o ID da sua rede (necess?rio para MetaMask reconhecer)
+    if method == "eth_chainId":
+        result = CHAIN_ID_HEX
+
+    # Retorna o n?mero do bloco atual
+    elif method == "eth_blockNumber":
+        result = hex(len(fmg.chain) - 1)
+
+    # Retorna o saldo de um endere?o
+    elif method == "eth_getBalance":
+        address = params[0] if params else ""
+        bal = fmg.get_balance(address)
+        # Converte para Wei (unidade do Ethereum) multiplicando por 10^18
+        result = hex(int(bal * (10 ** 18)))
+
+    # Retorna informa??es de um bloco pelo n?mero
+    elif method == "eth_getBlockByNumber":
+        block_num = params[0] if params else "latest"
+        if block_num == "latest":
+            block = fmg.get_last()
+        else:
+            try:
+                idx = int(block_num, 16)
+                block = fmg.chain[idx] if idx < len(fmg.chain) else None
+            except:
+                block = None
+
+        if block:
+            result = {
+                "number": hex(block.index),
+                "hash": "0x" + block.hash,
+                "parentHash": "0x" + block.previous_hash if block.previous_hash != "0" else "0x" + "0" * 64,
+                "timestamp": hex(int(block.timestamp)),
+                "transactions": block.transactions,
+                "nonce": hex(block.nonce),
+                "difficulty": hex(fmg.difficulty),
+            }
+        else:
+            result = None
+
+    # Retorna o n?mero de transa??es pendentes
+    elif method == "eth_getTransactionCount":
+        result = hex(len(fmg.pending))
+
+    # Retorna informa??es da rede
+    elif method == "net_version":
+        result = str(CHAIN_ID)
+
+    # Verifica se est? sincronizado
+    elif method == "eth_syncing":
+        result = False
+
+    # Retorna lista de contas (vazia -- usu?rio gerencia as pr?prias carteiras)
+    elif method == "eth_accounts":
+        result = []
+
+    # Retorna o pre?o do gas (taxa de transa??o -- zero na sua rede)
+    elif method == "eth_gasPrice":
+        result = "0x0"
+
+    # Estima o gas de uma transa??o
+    elif method == "eth_estimateGas":
+        result = "0x5208"  # 21000 em hex (padr?o Ethereum)
+
+    # Envia uma transa??o j? assinada
+    elif method == "eth_sendRawTransaction":
+        # Aceita a transa??o e retorna um hash simulado
+        raw = params[0] if params else ""
+        tx_hash = "0x" + hashlib.sha256(raw.encode()).hexdigest()
+        result = tx_hash
+
+    # Retorna o hash de uma transa??o
+    elif method == "eth_getTransactionByHash":
+        result = None  # Simplificado
+
+    # M?todo n?o suportado
+    else:
+        error = {"code": -32601, "message": f"M?todo n?o suportado: {method}"}
+
+    response = jsonify({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": result,
+        "error": error
+    })
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
+@app.route("/network-info")
+def network_info():
+    """
+    Retorna as informa??es para configurar a rede na MetaMask.
+    Mostre essas informa??es no seu site para os usu?rios adicionarem a rede!
+    """
+    base_url = request.host_url.rstrip("/")
+    return jsonify({
+        "networkName": "Formosa Gold",
+        "ticker": "FMG",
+        "chainId": CHAIN_ID,
+        "chainIdHex": CHAIN_ID_HEX,
+        "rpcUrl": f"{base_url}/rpc",
+        "explorerUrl": f"{base_url}/chain",
+        "instrucoes": {
+            "passo1": "Abra a MetaMask",
+            "passo2": "Va em Configuracoes > Redes > Adicionar Rede",
+            "passo3": f"Nome da Rede: Formosa Gold",
+            "passo4": f"URL RPC: {base_url}/rpc",
+            "passo5": f"ID da Cadeia: {CHAIN_ID}",
+            "passo6": "Simbolo: FMG",
+            "passo7": f"URL do Explorador: {base_url}/chain"
+        }
+    })
+
+
 app.run(host="0.0.0.0", port=5000)
+
