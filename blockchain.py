@@ -108,7 +108,7 @@ class Block:
 
 class Blockchain:
     def __init__(self):
-        self.difficulty = 3
+        self.difficulty = 4
         self.reward = 50
         self.pending = []
         init_db()
